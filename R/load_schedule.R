@@ -1,4 +1,15 @@
-load_schedules <- function(years) {
+#' Pull schedule data for a given year
+#'
+#' Create a list of data frames -- one for each year specified in the function
+#'
+#' @param year numeric
+#'
+#' @return list
+#' @export
+#' @examples
+#' load_schedule(years = c(2020,2021))
+
+load_schedule <- function(years) {
 
   if (!is.numeric(years)) {stop("Please enter the year of the season you want schedule data for.
                           Example: load_schedules(years = c(2019,2020,2021))")}
