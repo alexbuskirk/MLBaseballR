@@ -7,13 +7,12 @@ Authors@R:
            role = c("aut", "cre"),
            email = "alexbuskirk@outlook.com")
 Description: The purpose of MLBaseballR is to aid in scraping MLB data from various sources and provide tools for W/L prediction.
-License: GPL (>= 3)
+License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Depends: 
-    tidyverse
 Imports: 
     magrittr,
     dplyr,
@@ -22,4 +21,8 @@ Imports:
     purrr,
     stringr,
     data.table,
-    ggplot2
+    ggplot2,
+    glue,
+    lubridate,
+    graphics,
+    text

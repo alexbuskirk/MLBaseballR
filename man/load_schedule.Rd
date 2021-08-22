@@ -7,7 +7,7 @@
 load_schedule(years)
 }
 \arguments{
-\item{year}{numeric}
+\item{years}{numeric}
 }
 \value{
 list
@@ -17,4 +17,5 @@ Create a list of data frames -- one for each year specified in the function
 }
 \examples{
 load_schedule(years = c(2020,2021))
+
 }
