@@ -10,6 +10,7 @@
 #' load_schedule(years = c(2020,2021))
 #'
 #' @importFrom rlang .data
+#' @importFrom magrittr %>%
 
 load_schedule <- function(years) {
 
@@ -71,7 +72,7 @@ load_schedule <- function(years) {
 
     } else {
 
-      regex_gametime <- "[[:digit:]]*\\:[[:digit:]]*[:blank:]*am|pm[:blank:]*"  # example: "12:00 pm "
+      regex_gametime <- "(^[:blank:]*[[:digit:]]*\\:[[:digit:]]*[:blank:]*am|pm[:blank:]*)|(^[:blank:]*tbd[:blank:]*)"  # example: "12:00 pm " OR "TBD "
       regex_leadingblanks <- "^[:blank:]*"                                      # example: " "
       regex_teamname <- "[a-z|\\s]*"                                            # example: "seattle mariners"
 
@@ -86,12 +87,21 @@ load_schedule <- function(years) {
                       text = stringr::str_remove_all(.data$text, "\\."),
                       text = stringr::str_remove_all(.data$text, "\\'"),
 
-                      away_team = dplyr::case_when(stringr::str_detect(.data$text,regex_gametime)
-                                                   ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_leadingblanks,regex_gametime,regex_teamname)), regex_gametime),
-                                                   TRUE ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_leadingblanks,regex_teamname)), regex_leadingblanks)),
+                      away_team = glue::trim(
+                        dplyr::case_when(
+                          stringr::str_detect(.data$text,regex_gametime)
+                          ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_gametime,regex_teamname)), regex_gametime),
+                          TRUE ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_leadingblanks,regex_teamname)), regex_leadingblanks)
+                        )),
+
                       away_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, regex_score),"\\(|\\)")),
 
-                      home_team = stringr::str_remove_all(stringr::str_extract(.data$text, glue::glue(regex_hometeamprefix, regex_teamname)), glue::glue(regex_hometeamprefix,"|",regex_hometeampostfix)),
+                      home_team = glue::trim(
+                        stringr::str_remove_all(
+                          stringr::str_extract(.data$text, glue::glue(regex_hometeamprefix, regex_teamname)),
+                          glue::glue(regex_hometeamprefix,"|",regex_hometeampostfix)
+                        )),
+
                       home_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, glue::glue(regex_score,regex_hometeampostfix)) ,glue::glue("\\(|\\)|",regex_hometeampostfix)))
         )
 
