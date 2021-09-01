@@ -87,22 +87,22 @@ load_schedule <- function(years) {
                       text = stringr::str_remove_all(.data$text, "\\."),
                       text = stringr::str_remove_all(.data$text, "\\'"),
 
-                      away_team = glue::trim(
+                      away_team_name = glue::trim(
                         dplyr::case_when(
                           stringr::str_detect(.data$text,regex_gametime)
                           ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_gametime,regex_teamname)), regex_gametime),
                           TRUE ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_leadingblanks,regex_teamname)), regex_leadingblanks)
                         )),
 
-                      away_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, regex_score),"\\(|\\)")),
+                      away_team_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, regex_score),"\\(|\\)")),
 
-                      home_team = glue::trim(
+                      home_team_name = glue::trim(
                         stringr::str_remove_all(
                           stringr::str_extract(.data$text, glue::glue(regex_hometeamprefix, regex_teamname)),
                           glue::glue(regex_hometeamprefix,"|",regex_hometeampostfix)
                         )),
 
-                      home_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, glue::glue(regex_score,regex_hometeampostfix)) ,glue::glue("\\(|\\)|",regex_hometeampostfix)))
+                      home_team_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, glue::glue(regex_score,regex_hometeampostfix)) ,glue::glue("\\(|\\)|",regex_hometeampostfix)))
         )
 
       # joining schedule dates and games/results by row index
@@ -129,13 +129,13 @@ load_schedule <- function(years) {
       # Create final data set
       final_data <- dplyr::left_join(schedule_results, schedule_dates, by = c('row_match'='row')) %>%
         dplyr::select(-c('row','row_match','text')) %>%
-        dplyr::mutate(away_win_loss = dplyr::case_when(!is.na(.data$away_score) & .data$away_score > .data$home_score ~ 'W',
-                                                       !is.na(.data$away_score) & .data$away_score == .data$home_score ~ 'T',
-                                                       !is.na(.data$away_score) & .data$away_score < .data$home_score ~ 'L'),
+        dplyr::mutate(away_team_win_loss = dplyr::case_when(!is.na(.data$away_team_score) & .data$away_team_score > .data$home_team_score ~ 'W',
+                                                       !is.na(.data$away_team_score) & .data$away_team_score == .data$home_team_score ~ 'T',
+                                                       !is.na(.data$away_team_score) & .data$away_team_score < .data$home_team_score ~ 'L'),
 
-                      home_win_loss = dplyr::case_when(.data$away_win_loss == 'L' ~ 'W',
-                                                       .data$away_win_loss == 'T' ~ 'T',
-                                                       .data$away_win_loss == 'W' ~ 'L'),
+                      home_team_win_loss = dplyr::case_when(.data$away_team_win_loss == 'L' ~ 'W',
+                                                       .data$away_team_win_loss == 'T' ~ 'T',
+                                                       .data$away_team_win_loss == 'W' ~ 'L'),
                       season = yr)
 
     } # End if: duplicate dates
@@ -145,12 +145,12 @@ load_schedule <- function(years) {
     if(
 
       !lubridate::is.Date(final_data$date)
-      & !is.character(final_data$away_team)
-      & !is.numeric(final_data$away_score)
-      & !is.character(final_data$home_team)
-      & !is.numeric(final_data$home_score)
-      & !is.character(final_data$away_win_loss)
-      & !is.character(final_data$home_win_loss)
+      & !is.character(final_data$away_team_name)
+      & !is.numeric(final_data$away_team_score)
+      & !is.character(final_data$home_team_name)
+      & !is.numeric(final_data$home_team_score)
+      & !is.character(final_data$away_team_win_loss)
+      & !is.character(final_data$home_team_win_loss)
       & !is.numeric(final_data$season)
       & length(final_data) == 8
 
@@ -161,12 +161,12 @@ load_schedule <- function(years) {
           "Please check for data type mismatches. See FALSE(s) below:",
           "\nTotal of 8 columns = ", length(final_data) == 8,
           "\ndate = ",lubridate::is.Date(final_data$date),
-          "\naway_team = ",is.character(final_data$away_team),
-          "\naway_score = ",is.numeric(final_data$away_score),
-          "\nhome_team = ",is.character(final_data$home_team),
-          "\nhome_score = ",is.numeric(final_data$home_score),
-          "\naway_win_loss = ",is.character(final_data$away_win_loss),
-          "\nhome_win_loss = ",is.character(final_data$home_win_loss),
+          "\naway_team_name = ",is.character(final_data$away_team_name),
+          "\naway_team_score = ",is.numeric(final_data$away_team_score),
+          "\nhome_team_name = ",is.character(final_data$home_team_name),
+          "\nhome_team_score = ",is.numeric(final_data$home_team_score),
+          "\naway_team_win_loss = ",is.character(final_data$away_team_win_loss),
+          "\nhome_team_win_loss = ",is.character(final_data$home_team_win_loss),
           "\nseason = ",is.numeric(final_data$season)
 
         )
@@ -187,5 +187,7 @@ load_schedule <- function(years) {
   results
 
 } # End function: load schedules
+
+
 
 
