@@ -72,51 +72,43 @@ load_schedule <- function(years) {
 
     } else {
 
-      regex_gametime <- "(^[:blank:]*[[:digit:]]*\\:[[:digit:]]*[:blank:]*am|pm[:blank:]*)|(^[:blank:]*tbd[:blank:]*)"  # example: "12:00 pm " OR "TBD "
-      regex_leadingblanks <- "^[:blank:]*"                                      # example: " "
-      regex_teamname <- "[a-z|\\s]*"                                            # example: "seattle mariners"
-
-      regex_score <- "\\([[:digit:]]*\\)"                                       # example: "(10)"
-      regex_hometeamprefix <- "\\@[:blank:]*"                                   # example: "@ "
-      regex_hometeampostfix <- "[:blank:]*(preview|boxscore)[:blank:]*$"        # example: " preview " or " boxscore "
-
-      schedule_results <- schedule_base %>%
-        dplyr::mutate(row = dplyr::if_else(row == 0, dplyr::row_number(), as.integer(0))) %>%
-        dplyr::filter(row > 0) %>%
-        dplyr::mutate(text = stringr::str_remove_all(.data$text, "\n*"),
+      schedule_filter <- schedule_base %>%
+        dplyr::mutate(row = dplyr::if_else(row == 0, dplyr::row_number(), as.integer(0)),
                       text = stringr::str_remove_all(.data$text, "\\."),
-                      text = stringr::str_remove_all(.data$text, "\\'"),
+                      text = stringr::str_remove_all(.data$text, "\\'")) %>%
+        dplyr::filter(row > 0)
 
-                      away_team_name = glue::trim(
-                        dplyr::case_when(
-                          stringr::str_detect(.data$text,regex_gametime)
-                          ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_gametime,regex_teamname)), regex_gametime),
-                          TRUE ~ stringr::str_remove(stringr::str_extract(.data$text, glue::glue(regex_leadingblanks,regex_teamname)), regex_leadingblanks)
-                        )),
+      schedule_new_cols <- stringr::str_match(
+        schedule_filter$text, "\n.*\n.*\n[:blank:]*(.*)\n[:blank:]*(.*)\n.*\n[:blank:]*(.*)\n[:blank:]*(.*)\n.*"
+      ) %>%
+        as.data.frame() %>%
+        dplyr::rename('text' = .data$V1
+                     ,'away_team_name'  = .data$V2
+                     ,'away_team_score' = .data$V3
+                     ,'home_team_name'  = .data$V4
+                     ,'home_team_score' = .data$V5
+        ) %>%
+        dplyr::select(-.data$text)
 
-                      away_team_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, regex_score),"\\(|\\)")),
 
-                      home_team_name = glue::trim(
-                        stringr::str_remove_all(
-                          stringr::str_extract(.data$text, glue::glue(regex_hometeamprefix, regex_teamname)),
-                          glue::glue(regex_hometeamprefix,"|",regex_hometeampostfix)
-                        )),
-
-                      home_team_score = as.integer(stringr::str_remove_all(stringr::str_extract(.data$text, glue::glue(regex_score,regex_hometeampostfix)) ,glue::glue("\\(|\\)|",regex_hometeampostfix)))
-        )
+      schedule_cleaned <- cbind(schedule_filter$row,schedule_new_cols) %>%
+        dplyr::mutate(away_team_score = as.integer(stringr::str_remove_all(.data$away_team_score,"\\(|\\)")),
+                      home_team_score = as.integer(stringr::str_remove_all(.data$home_team_score,"\\(|\\)"))
+        ) %>%
+        dplyr::rename(row = .data$`schedule_filter$row`)
 
       # joining schedule dates and games/results by row index
       for (r in seq_along(schedule_dates$date)) {
 
-        if (sum(stringr::str_detect(names(schedule_results),"row_match"))==1) {
+        if (sum(stringr::str_detect(names(schedule_cleaned),"row_match"))==1) {
 
-          schedule_results <- schedule_results %>%
+          schedule_cleaned <- schedule_cleaned %>%
             dplyr::mutate(row_match = dplyr::case_when(.data$row > schedule_dates$row[r] ~ schedule_dates$row[r],
                                                        TRUE ~ row_match))
 
         } else {
 
-          schedule_results <- schedule_results %>%
+          schedule_cleaned <- schedule_cleaned %>%
             dplyr::mutate(row_match = dplyr::case_when(.data$row > schedule_dates$row[r] ~ schedule_dates$row[r]))
 
         } #End if: row matches
@@ -127,15 +119,15 @@ load_schedule <- function(years) {
       Sys.sleep(stats::runif(1, min = 2, max = 5))
 
       # Create final data set
-      final_data <- dplyr::left_join(schedule_results, schedule_dates, by = c('row_match'='row')) %>%
-        dplyr::select(-c('row','row_match','text')) %>%
+      final_data <- dplyr::left_join(schedule_cleaned, schedule_dates, by = c('row_match'='row')) %>%
+        dplyr::select(-c('row','row_match')) %>%
         dplyr::mutate(away_team_win_loss = dplyr::case_when(!is.na(.data$away_team_score) & .data$away_team_score > .data$home_team_score ~ 'W',
-                                                       !is.na(.data$away_team_score) & .data$away_team_score == .data$home_team_score ~ 'T',
-                                                       !is.na(.data$away_team_score) & .data$away_team_score < .data$home_team_score ~ 'L'),
+                                                            !is.na(.data$away_team_score) & .data$away_team_score == .data$home_team_score ~ 'T',
+                                                            !is.na(.data$away_team_score) & .data$away_team_score < .data$home_team_score ~ 'L'),
 
                       home_team_win_loss = dplyr::case_when(.data$away_team_win_loss == 'L' ~ 'W',
-                                                       .data$away_team_win_loss == 'T' ~ 'T',
-                                                       .data$away_team_win_loss == 'W' ~ 'L'),
+                                                            .data$away_team_win_loss == 'T' ~ 'T',
+                                                            .data$away_team_win_loss == 'W' ~ 'L'),
                       season = yr)
 
     } # End if: duplicate dates
