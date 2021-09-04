@@ -46,10 +46,10 @@ load_schedule <- function(years) {
 
       schedule_dates <- schedule_base %>%
         dplyr::filter(row > 0) %>%
-        dplyr::mutate(date = stringr::str_remove(.data$text, "^[:alpha:]*\\,[:blank:]*"),
-                      date = dplyr::case_when(stringr::str_detect(tolower(.data$text), "today's") ~ .data$date[today_row$index+1], TRUE ~ .data$date),
-                      date = lubridate::mdy(.data$date),
-                      date = dplyr::case_when(stringr::str_detect(tolower(.data$text), "today's") ~ .data$date[today_row$index+1]-1, TRUE ~ .data$date)
+        dplyr::mutate(game_date = stringr::str_remove(.data$text, "^[:alpha:]*\\,[:blank:]*"),
+                      game_date = dplyr::case_when(stringr::str_detect(tolower(.data$text), "today's") ~ .data$game_date[today_row$index+1], TRUE ~ .data$game_date),
+                      game_date = lubridate::mdy(.data$game_date),
+                      game_date = dplyr::case_when(stringr::str_detect(tolower(.data$text), "today's") ~ .data$game_date[today_row$index+1]-1, TRUE ~ .data$game_date)
         ) %>%
         dplyr::select(-.data$text)
 
@@ -57,15 +57,15 @@ load_schedule <- function(years) {
 
       schedule_dates <- schedule_base %>%
         dplyr::filter(row > 0) %>%
-        dplyr::mutate(date = stringr::str_remove(.data$text, "^[:alpha:]*\\,[:blank:]*"),
-                      date = lubridate::mdy(.data$date)
+        dplyr::mutate(game_date = stringr::str_remove(.data$text, "^[:alpha:]*\\,[:blank:]*"),
+                      game_date = lubridate::mdy(.data$game_date)
         ) %>%
         dplyr::select(-.data$text)
 
     } # End if: current or past season
 
     # Check for duplicate dates
-    if (schedule_dates %>% dplyr::group_by(date) %>% dplyr::count() %>% dplyr::filter(.data$n>1) %>% nrow() > 0) {
+    if (schedule_dates %>% dplyr::group_by(.data$game_date) %>% dplyr::count() %>% dplyr::filter(.data$n>1) %>% nrow() > 0) {
 
       stop(glue::glue("Duplicate date(s) in the schedule.
                   \nlink: ",link))
@@ -98,7 +98,7 @@ load_schedule <- function(years) {
         dplyr::rename(row = .data$`schedule_filter$row`)
 
       # joining schedule dates and games/results by row index
-      for (r in seq_along(schedule_dates$date)) {
+      for (r in seq_along(schedule_dates$game_date)) {
 
         if (sum(stringr::str_detect(names(schedule_cleaned),"row_match"))==1) {
 
@@ -136,7 +136,7 @@ load_schedule <- function(years) {
     # Final data quality checks
     if(
 
-      !lubridate::is.Date(final_data$date)
+      !lubridate::is.Date(final_data$game_date)
       & !is.character(final_data$away_team_name)
       & !is.numeric(final_data$away_team_score)
       & !is.character(final_data$home_team_name)
@@ -152,7 +152,7 @@ load_schedule <- function(years) {
         glue::glue(
           "Please check for data type mismatches. See FALSE(s) below:",
           "\nTotal of 8 columns = ", length(final_data) == 8,
-          "\ndate = ",lubridate::is.Date(final_data$date),
+          "\ngame_date = ",lubridate::is.Date(final_data$game_date),
           "\naway_team_name = ",is.character(final_data$away_team_name),
           "\naway_team_score = ",is.numeric(final_data$away_team_score),
           "\nhome_team_name = ",is.character(final_data$home_team_name),
